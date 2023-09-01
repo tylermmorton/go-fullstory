@@ -56,10 +56,10 @@ func Test_Identify(t *testing.T) {
 				"FS.identify('123456789', {",
 				"displayName: 'John Doe',",
 				"email: 'johndoe@example.com',",
-				"foo_str: 'bar'",
+				"foo_str: \"bar\"",
 				"meaningOfLife_int: 42",
 				"gravity_real: 9.8",
-				"favoriteColors_strs: ['red','green','blue']",
+				"favoriteColors_strs: [\"red\",\"green\",\"blue\"]",
 			},
 		},
 	}
@@ -72,14 +72,14 @@ func Test_Identify(t *testing.T) {
 			}
 
 			for _, expect := range testCase.doContains {
-				if !strings.Contains(string(identify), expect) {
+				if !strings.Contains(string(identify.AsJS()), expect) {
 					t.Logf("identify: %s", identify)
 					t.Errorf("expected identify to contain %q", expect)
 				}
 			}
 
 			for _, expect := range testCase.dontContains {
-				if strings.Contains(string(identify), expect) {
+				if strings.Contains(string(identify.AsJS()), expect) {
 					t.Logf("identify: %s", identify)
 					t.Errorf("expected identify to not contain %q", expect)
 				}

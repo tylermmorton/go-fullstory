@@ -1,14 +1,12 @@
 package fullstory
 
 import (
-	"bytes"
-	"html/template"
+	"text/template"
 )
 
 var (
 	recordingSnippetText = /* .html */ `
 {{ if .Enabled -}}
-<script>
 window['_fs_host'] = '{{ .Host }}';
 window['_fs_script'] = '{{ .Script }}';
 window['_fs_org'] = '{{ .OrgID }}';
@@ -30,7 +28,6 @@ window['_fs_namespace'] = '{{ .Namespace }}';
     if(m[y])m[y]=function(){return g._w[y].apply(this,arguments)};
     g._v="1.3.0";
 })(window,document,window['_fs_namespace'],'script','user');
-</script>
 {{- end }}
 `
 	recordingTemplate = template.Must(template.New("fs-recording").Parse(recordingSnippetText))
@@ -91,20 +88,15 @@ func RecordingNamespace(value string) RecordingOption {
 
 // RecordingSnippet renders a new FullStory recording recording within a <script> tag from a Go template.
 // One can control how the recording renders by supplying one or more SnippetOptions
-func RecordingSnippet(orgID string, opts ...RecordingOption) (template.HTML, error) {
-	s := defaultRecordingOptions(orgID)
+func RecordingSnippet(orgID string, opts ...RecordingOption) (Snippet, error) {
+	dotCtx := defaultRecordingOptions(orgID)
 	for _, opt := range opts {
-		opt(s)
+		opt(dotCtx)
 	}
-	buf := bytes.Buffer{}
-	err := recordingTemplate.Execute(&buf, s)
-	if err != nil {
-		return "", err
-	}
-	return template.HTML(buf.String()), nil
+	return createSnippetFromTemplate(recordingTemplate, dotCtx)
 }
 
-func MustRecordingSnippet(orgID string, opts ...RecordingOption) template.HTML {
+func MustRecordingSnippet(orgID string, opts ...RecordingOption) Snippet {
 	snippet, err := RecordingSnippet(orgID, opts...)
 	if err != nil {
 		panic(err)

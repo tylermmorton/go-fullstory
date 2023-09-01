@@ -1,32 +1,29 @@
 package fullstory
 
 import (
-	"bytes"
 	"fmt"
-	"html/template"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 )
 
 var (
-	identifySnippetText = /* .html */ `
+	identifySnippetText = `
 {{ if .Enabled -}}
-<script>
 FS.identify('{{ .UserID }}', {
   displayName: '{{ .DisplayName }}',
   email: '{{ .EmailAddress }}',
-  // Add your own custom user variables here, details at
-  // https://help.fullstory.com/hc/en-us/articles/360020623294-FS-setUserVars-API-Capturing-custom-user-properties
-  {{ userVars .UserVars }}
+{{- if .UserVars }}
+  {{ userVars .UserVars -}}
+{{ end -}}
 });
-</script>
 {{- end }}
 `
 	identifyTemplate = template.Must(template.New("fs-identify").Funcs(map[string]any{
 		// https://help.fullstory.com/hc/en-us/articles/4446290296599-Setting-custom-API-properties
-		"userVars": func(m map[string]interface{}) template.JS {
-			buf := &bytes.Buffer{}
+		"userVars": func(m map[string]interface{}) string {
+			buf := strings.Builder{}
 			for k, v := range m {
 				switch v.(type) {
 				case bool:
@@ -36,7 +33,7 @@ FS.identify('{{ .UserID }}', {
 				case int, int32, int64:
 					buf.WriteString(fmt.Sprintf("%s_int: %d,\n", k, v))
 				case string:
-					buf.WriteString(fmt.Sprintf("%s_str: '%s',\n", k, v))
+					buf.WriteString(fmt.Sprintf("%s_str: %q,\n", k, v))
 				case time.Time:
 					buf.WriteString(fmt.Sprintf("%s_date: new Date(%q),\n", k, v.(time.Time).Format(time.RFC3339)))
 				case []bool:
@@ -78,7 +75,7 @@ FS.identify('{{ .UserID }}', {
 				case []string:
 					strs := make([]string, len(v.([]string)))
 					for i, s := range v.([]string) {
-						strs[i] = fmt.Sprintf("'%s'", s)
+						strs[i] = fmt.Sprintf("%q", s)
 					}
 					buf.WriteString(fmt.Sprintf("%s_strs: [%s],\n", k, strings.Join(strs, ",")))
 				case []time.Time:
@@ -89,7 +86,7 @@ FS.identify('{{ .UserID }}', {
 					buf.WriteString(fmt.Sprintf("%s_dates: [%s]n", k, strings.Join(dates, ",")))
 				}
 			}
-			return template.JS(buf.String())
+			return buf.String()
 		},
 	}).Parse(identifySnippetText))
 )
@@ -111,7 +108,7 @@ func defaultIdentifyOptions(userID, displayName, emailAddress string) *identify 
 		UserID:       userID,
 		DisplayName:  displayName,
 		EmailAddress: emailAddress,
-		UserVars:     map[string]interface{}{},
+		UserVars:     nil,
 	}
 }
 
@@ -135,20 +132,15 @@ func IdentifyUserVars(userVars map[string]interface{}) IdentifyOption {
 
 // IdentifySnippet renders a new FullStory identification recording within a <script> tag from a Go template.
 // One can control how the identifier renders by supplying one or more IdentifyOptions
-func IdentifySnippet(userID, displayName, emailAddress string, opts ...IdentifyOption) (template.HTML, error) {
-	i := defaultIdentifyOptions(userID, displayName, emailAddress)
+func IdentifySnippet(userID, displayName, emailAddress string, opts ...IdentifyOption) (Snippet, error) {
+	dotCtx := defaultIdentifyOptions(userID, displayName, emailAddress)
 	for _, opt := range opts {
-		opt(i)
+		opt(dotCtx)
 	}
-	buf := &bytes.Buffer{}
-	err := identifyTemplate.Execute(buf, i)
-	if err != nil {
-		return "", err
-	}
-	return template.HTML(buf.String()), nil
+	return createSnippetFromTemplate(identifyTemplate, dotCtx)
 }
 
-func MustIdentifySnippet(userID, displayName, emailAddress string, opts ...IdentifyOption) template.HTML {
+func MustIdentifySnippet(userID, displayName, emailAddress string, opts ...IdentifyOption) Snippet {
 	html, err := IdentifySnippet(userID, displayName, emailAddress, opts...)
 	if err != nil {
 		panic(err)
