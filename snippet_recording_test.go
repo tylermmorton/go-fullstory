@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test_Snippet(t *testing.T) {
+func Test_RecordingSnippet(t *testing.T) {
 	testTable := map[string]struct {
 		orgID          string
 		opts           []RecordingOption

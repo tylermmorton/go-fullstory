@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test_Identify(t *testing.T) {
+func Test_IdentifySnippet(t *testing.T) {
 	testTable := map[string]struct {
 		userID         string
 		displayName    string
