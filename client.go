@@ -8,43 +8,45 @@ import (
 	"time"
 )
 
+// Config is the FullStory API config.
+//
+// It can be loaded via github.com/kelseyhightower/envconfig
 type Config struct {
 	// OrgID is the fullstory organization id
-	OrgID string `env:"FULLSTORY_ORG_ID"`
-	// Enabled is whether or not fullstory is enabled
-	Enabled bool `env:"FULLSTORY_ENABLED"`
+	OrgID string `envconfig:"FULLSTORY_ORG_ID"`
 	// APIKey is the fullstory api key
-	APIKey string `env:"FULLSTORY_API_KEY"`
+	APIKey string `envconfig:"FULLSTORY_API_KEY"`
 }
 
-type Client struct {
+// Client is the FullStory API client interface
+type Client interface {
+	CreateEvent(ctx context.Context, req *CreateEventRequest) error
+}
+
+type client struct {
 	// APIKey is the fullstory api key
 	APIKey string
-	// Enabled is whether or not fullstory is enabled
-	Enabled bool
 	// Host is the fullstory host
 	Host string
 	// OrgID is the fullstory organization id
 	OrgID string
-
 	// httpClient is the http client
 	httpClient *http.Client
 }
 
-// NewClient returns a new fullstory client
-func NewClient(cfg *Config) *Client {
-	return &Client{
-		APIKey:  cfg.APIKey,
-		Enabled: cfg.Enabled,
-		Host:    "https://api.fullstory.com",
-		OrgID:   cfg.OrgID,
+// NewClient returns a new FullStory API Client
+func NewClient(cfg *Config) Client {
+	return &client{
+		APIKey: cfg.APIKey,
+		Host:   "https://api.fullstory.com",
+		OrgID:  cfg.OrgID,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
 	}
 }
 
-func (c *Client) PostEvent(ctx context.Context, req *CreateEventRequest) error {
+func (c *client) CreateEvent(ctx context.Context, req *CreateEventRequest) error {
 	byt, err := req.MarshalJSON()
 	if err != nil {
 		return err
