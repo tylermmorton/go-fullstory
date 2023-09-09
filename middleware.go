@@ -9,6 +9,7 @@ func CreateSessionCookieMiddleware(cookieName string) func(http.Handler) http.Ha
 			cookie, err := req.Cookie(cookieName)
 			if err != nil {
 				h.ServeHTTP(wr, req)
+				return
 			}
 
 			h.ServeHTTP(wr, req.WithContext(WithSessionID(ctx, cookie.Value)))
@@ -23,6 +24,7 @@ func CreateSessionHeaderMiddleware(headerName string) func(http.Handler) http.Ha
 			sessionID := req.Header.Get(headerName)
 			if len(sessionID) == 0 {
 				h.ServeHTTP(wr, req)
+				return
 			}
 
 			h.ServeHTTP(wr, req.WithContext(WithSessionID(ctx, sessionID)))
