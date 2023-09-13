@@ -29,6 +29,7 @@ func SessionCookie(cookieName string) (Snippet, error) {
 			Path:     "/",
 			Secure:   false,
 			HttpOnly: false,
+			SameSite: http.SameSiteStrictMode,
 		},
 	})
 }
